@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdlib>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -83,5 +84,22 @@ void processInput(GLFWwindow *window) {
     }
     if (ctrlPressed && (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)) {
         UpdateWindow(window, 1, 0);
+    }
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS) {
+            double xpos, ypos;
+            glfwGetCursorPos(window, &xpos, &ypos);
+            int w, h;
+            glfwGetWindowSize(window, &w, &h);
+
+            float x = (float) (xpos / w);
+            float y = 1.0f - (float) (ypos / h);
+
+            glClearColor(x, y, 0, 1);
+        } else {
+            glClearColor(rand() / (float) RAND_MAX, rand() / (float) RAND_MAX, rand() / (float) RAND_MAX, 1);
+        }
     }
 }
