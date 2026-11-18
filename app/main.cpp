@@ -1,24 +1,50 @@
 // @formatter:off
 #include<iostream>
-#include <glad/glad.h>
+#include<glad/glad.h>
 #include<GLFW/glfw3.h>
 // @formatter:on
 
-void frame_buffer_size_callback(GLFWwindow *window, int width, int height);
+#include <cstdlib>
 
-void processInput(GLFWwindow *window);
+void frame_buffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+
+
+const char* vertexShaderSource = R"S(
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+void main()
+{
+    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+}
+)S";
+
+const char* fragmentShaderSource = R"S(
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.6902, 0.6392, 0.8314, 1.0);
+}
+)S";
 
 int SCR_WIDTH = 800;
 int SCR_HEIGHT = 600;
 
-int main() {
+int triangleNum = 0;
+
+int main()
+{
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "druga-nedelja", NULL, NULL);
-    if (!window) {
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "druga-nedelja", NULL, NULL);
+    if (!window)
+    {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return EXIT_FAILURE;
@@ -27,24 +53,188 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, frame_buffer_size_callback);
 
-    if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
         std::cout << "Failed to initialize GLAD" << std::endl;
         glfwTerminate();
         return EXIT_FAILURE;
     }
 
-    while (!glfwWindowShouldClose(window)) {
+    unsigned vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    int success = 0;
+    char infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+
+    if (!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED" << infoLog << std::endl;
+    }
+
+    unsigned fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED" << infoLog << std::endl;
+    }
+
+    unsigned shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << infoLog << std::endl;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    // @formatter:off
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f, // 0 levo dole
+        0.5f, -0.5f, 0.0f,  // 1 desno dole
+        0.5f, 0.5f, 0.0f,   // 2 desno gore
+        -0.5f, 0.5f, 0.0f,  // 3 levo gore
+        0.0f, 0.75f, 0.0f,  // 4 gore centar
+        0.0f, -0.75f, 0.0f, // 5 dole centar
+        0.75f, 0.0f, 0.0f,  // 6 desno centar
+        -0.75f, 0.0f, 0.0f, // 7 levo centar
+        -0.25f, 0.75f, 0.0f // 8
+    };
+    // @formatter:on
+
+    unsigned int indices[] = {
+        0, 1, 2, // trougao
+        0, 2, 3, // cetvorougao
+        2, 3, 4, // petougao
+        0, 1, 5, // sestougao
+        1, 2, 6, // sedmougao
+        0, 3, 7, // osmougao
+        3, 4, 8 // devetougao
+    };
+
+    unsigned int VBO;
+    unsigned int VAO;
+
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    unsigned int EBO;
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    while (!glfwWindowShouldClose(window))
+    {
         glfwPollEvents();
         processInput(window);
+        glClearColor(0.1137, 0.2000, 0.3294, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO);
+
+        if (triangleNum == 3)
+        {
+            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)0);
+        }
+        else if (triangleNum == 4)
+        {
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+        }
+        else if (triangleNum == 5)
+        {
+            glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, (void*)0);
+        }
+        else if (triangleNum == 6)
+        {
+            glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)0);
+        }
+        else if (triangleNum == 7)
+        {
+            glDrawElements(GL_TRIANGLES, 15, GL_UNSIGNED_INT, (void*)0);
+        }
+        else if (triangleNum == 8)
+        {
+            glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, (void*)0);
+        }
+        else if (triangleNum == 9)
+        {
+            glDrawElements(GL_TRIANGLES, 21, GL_UNSIGNED_INT, (void*)0);
+        }
+        glBindVertexArray(0);
+
         glfwSwapBuffers(window);
     }
 
     return 0;
 }
 
-void frame_buffer_size_callback(GLFWwindow *window, int width, int height) {
+void frame_buffer_size_callback(GLFWwindow* window, int width, int height)
+{
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow *window) {
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, GL_TRUE);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS)
+    {
+        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+        {
+            triangleNum = 3;
+        }
+
+        else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
+        {
+            triangleNum = 4;
+        }
+        else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
+        {
+            triangleNum = 5;
+        }
+
+        else if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
+        {
+            triangleNum = 6;
+        }
+        else if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS)
+        {
+            triangleNum = 7;
+        }
+        else if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS)
+        {
+            triangleNum = 8;
+        }
+        else if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS)
+        {
+            triangleNum = 9;
+        }
+    }
 }
