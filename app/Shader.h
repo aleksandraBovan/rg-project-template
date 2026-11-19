@@ -90,6 +90,21 @@ public:
         glUniform4f(uniformID, x, y, z, w);
     }
 
+    void setUniform2f(const std::string& name, float x, float y)
+    {
+        int uniformID = glGetUniformLocation(m_Id, name.c_str());
+        if (uniformID != -1)
+        {
+            glUniform2f(uniformID, x, y);
+        }
+    }
+
+    void setUniform1i(std::string name, int value)
+    {
+        int uniformID = glGetUniformLocation(m_Id, name.c_str());
+        glUniform1i(uniformID, value);
+    }
+
     void deleteProgram()
     {
         glDeleteProgram(m_Id);

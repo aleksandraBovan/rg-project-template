@@ -69,7 +69,8 @@ file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS}
         app/main.cpp
         app/Shader.h
-        app/Error.h)
+        app/Error.h
+        app/Texture2D.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/app")
 if (EXISTS "${CMAKE_SOURCE_DIR}/include")
