@@ -67,7 +67,9 @@ file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/app/*.hpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS}
-        app/main.cpp)
+        app/main.cpp
+        app/Shader.h
+        app/Error.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/app")
 if (EXISTS "${CMAKE_SOURCE_DIR}/include")

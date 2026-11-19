@@ -5,35 +5,15 @@
 // @formatter:on
 
 #include <cstdlib>
+#include <cmath>
+
+#include "Shader.h"
 
 void frame_buffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
-
-const char* vertexShaderSource = R"S(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-
-void main()
-{
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-}
-)S";
-
-const char* fragmentShaderSource = R"S(
-#version 330 core
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vec4(0.6902, 0.6392, 0.8314, 1.0);
-}
-)S";
-
 int SCR_WIDTH = 800;
 int SCR_HEIGHT = 600;
-
-int triangleNum = 0;
 
 int main()
 {
@@ -60,68 +40,19 @@ int main()
         return EXIT_FAILURE;
     }
 
-    unsigned vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    int success = 0;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED" << infoLog << std::endl;
-    }
-
-    unsigned fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED" << infoLog << std::endl;
-    }
-
-    unsigned shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << infoLog << std::endl;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    Shader shader("resources/shaders/vertexShader.vs",
+                  "resources/shaders/fragmentShader.fs");
 
     // @formatter:off
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f, // 0 levo dole
-        0.5f, -0.5f, 0.0f,  // 1 desno dole
-        0.5f, 0.5f, 0.0f,   // 2 desno gore
-        -0.5f, 0.5f, 0.0f,  // 3 levo gore
-        0.0f, 0.75f, 0.0f,  // 4 gore centar
-        0.0f, -0.75f, 0.0f, // 5 dole centar
-        0.75f, 0.0f, 0.0f,  // 6 desno centar
-        -0.75f, 0.0f, 0.0f, // 7 levo centar
-        -0.25f, 0.75f, 0.0f // 8
+        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // 0 levo dole
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  // 1 desno dole
+        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f // 2 gore centar
     };
     // @formatter:on
 
     unsigned int indices[] = {
         0, 1, 2, // trougao
-        0, 2, 3, // cetvorougao
-        2, 3, 4, // petougao
-        0, 1, 5, // sestougao
-        1, 2, 6, // sedmougao
-        0, 3, 7, // osmougao
-        3, 4, 8 // devetougao
     };
 
     unsigned int VBO;
@@ -139,8 +70,11 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -152,42 +86,20 @@ int main()
         glClearColor(0.1137, 0.2000, 0.3294, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
+        shader.use();
+        shader.setUniform4f("gColor", 0.0f, 0.0f, fabs(sin((float)glfwGetTime())), 1.0f);
         glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)0);
 
-        if (triangleNum == 3)
-        {
-            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)0);
-        }
-        else if (triangleNum == 4)
-        {
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
-        }
-        else if (triangleNum == 5)
-        {
-            glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, (void*)0);
-        }
-        else if (triangleNum == 6)
-        {
-            glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)0);
-        }
-        else if (triangleNum == 7)
-        {
-            glDrawElements(GL_TRIANGLES, 15, GL_UNSIGNED_INT, (void*)0);
-        }
-        else if (triangleNum == 8)
-        {
-            glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, (void*)0);
-        }
-        else if (triangleNum == 9)
-        {
-            glDrawElements(GL_TRIANGLES, 21, GL_UNSIGNED_INT, (void*)0);
-        }
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
     }
 
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    shader.deleteProgram();
+    glfwTerminate();
     return 0;
 }
 
@@ -201,40 +113,5 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, GL_TRUE);
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
-        glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS)
-    {
-        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-        {
-            triangleNum = 3;
-        }
-
-        else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
-        {
-            triangleNum = 4;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
-        {
-            triangleNum = 5;
-        }
-
-        else if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
-        {
-            triangleNum = 6;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS)
-        {
-            triangleNum = 7;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS)
-        {
-            triangleNum = 8;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS)
-        {
-            triangleNum = 9;
-        }
     }
 }
