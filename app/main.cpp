@@ -125,7 +125,7 @@ int main()
                                     quadrantColors[x][y][2],
                                     quadrantColors[x][y][3]);
 
-                // slikanje iz N^2 u N
+                // preslikavanje N^2 -> N
                 int texIndex = (y * gridSizeX) + x;
                 textures[texIndex].active(GL_TEXTURE0);
 
