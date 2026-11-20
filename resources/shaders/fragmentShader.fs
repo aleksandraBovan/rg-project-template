@@ -10,11 +10,12 @@ void main()
 {
     vec4 texColor = texture(t0, outTexCords);
 
-    if(u_Color.a == 0.0){
+    if(u_Color.a == 0.0)
+    {
         FragColor = texColor;
     }
-    else{
+    else
+    {
         FragColor = mix(texColor, u_Color, 0.5);
     }
-    //FragColor = u_Color;
 }
